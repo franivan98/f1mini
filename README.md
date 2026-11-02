@@ -23,6 +23,11 @@ Sin servidor propio: el que crea la sala hace de host (P2P con WebRTC / PeerJS).
 - **Grilla invertida** (opcional): desde la 2ª carrera, el que va primero en el campeonato larga último.
 - Controles: ↑/W acelerar · ↓/S frenar · ←→/A D girar · **R** volver a pista · **M** sonido. En el celular aparecen botones táctiles (mejor con el celu horizontal).
 - **Rebufo**: si vas pegado atrás de otro auto, sumás velocidad punta.
+- **DRS**: en las rectas marcadas con "DRS", si al entrar estás a menos de 1 s del de adelante (desde la vuelta 2), se abre el alerón (+9% de punta). Se cierra al frenar.
+- **Gomas y boxes**: las gomas se gastan (más rápido si derrapás o pisás pasto) y el auto agarra menos. Entrá al pit lane de la recta principal (limitador 90 km/h), frená en los recuadros amarillos y en 2,6 s tenés gomas nuevas.
+- **Daño**: los choques fuertes rompen el alerón (menos velocidad y menos giro). Se arregla en boxes (+2,2 s).
+- **Parada obligatoria** (opcional): si no parás en boxes, +20 s al final.
+- **Fin de carrera**: cuando alguien recibe la bandera a cuadros, el resto termina al cruzar la línea. Cuando terminan todos los humanos, la carrera cierra a los 5 s. Como máximo, 90 s después del primer humano (o 2 min después del ganador). Arriba aparece la cuenta regresiva.
 
 ## Cosas para saber
 - El host **no tiene que cerrar la pestaña**: si se va, se corta la sala. Los bots corren en la compu del host.
@@ -34,4 +39,5 @@ Sin servidor propio: el que crea la sala hace de host (P2P con WebRTC / PeerJS).
 - `js/core.js` — pistas, física, vueltas e IA de bots (para agregar una pista, sumala en `TRACKS`).
 - `js/net.js` — conexión P2P host/cliente.
 - `js/main.js` — salas, campeonato, render, HUD, input y sonido.
+- `js/scenery.js` — escenografía: pianos, grava, boxes, tribunas, árboles, edificios, cerros.
 - `vendor/peerjs.min.js` — PeerJS 1.5.5 (licencia MIT).

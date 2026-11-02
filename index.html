@@ -25,6 +25,8 @@
     <p id="menuMsg" class="msg"></p>
     <div class="help">
       <b>Controles:</b> ↑/W acelerar · ↓/S frenar · ←→/A D girar · R volver a pista · M sonido<br>
+      <b>Boxes:</b> entrá por el carril de la recta principal y frená en los recuadros amarillos.<br>
+      <b>DRS:</b> se abre solo si estás a menos de 1 s del de adelante (desde la vuelta 2).<br>
       En celular aparecen botones táctiles.
     </div>
   </div>
@@ -55,12 +57,18 @@
         <div class="lbl">Calendario (tildá las pistas)</div>
         <div id="tracks" class="tracks"></div>
         <div class="settings">
-          <label>Vueltas por carrera <input id="sLaps" type="number" min="1" max="30" value="3"></label>
+          <label>Vueltas por carrera <input id="sLaps" type="number" min="1" max="30" value="5"></label>
           <label>Bots <input id="sBots" type="number" min="0" max="10" value="3"></label>
           <label>Dificultad bots
             <select id="sLevel"><option value="facil">Fácil</option><option value="normal" selected>Normal</option><option value="dificil">Difícil</option></select>
           </label>
+          <label>Desgaste de gomas
+            <select id="sWear"><option value="off">Sin desgaste</option><option value="normal" selected>Normal</option><option value="alto">Alto</option></select>
+          </label>
           <label class="chk"><input id="sCol" type="checkbox" checked> Colisiones entre autos</label>
+          <label class="chk"><input id="sDmg" type="checkbox" checked> Daño (se arregla en boxes)</label>
+          <label class="chk"><input id="sDrs" type="checkbox" checked> DRS (a menos de 1 s del de adelante)</label>
+          <label class="chk"><input id="sMand" type="checkbox"> Parada en boxes obligatoria (+20 s si no parás)</label>
           <label class="chk"><input id="sRev" type="checkbox" checked> Grilla invertida (el líder larga último)</label>
         </div>
         <button id="btnStart" class="big">Largar campeonato</button>
