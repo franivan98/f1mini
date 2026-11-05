@@ -410,9 +410,33 @@ function remoteNow(rc, now) {
   return { x: d[0] + d[3] * dt, y: d[1] + d[4] * dt, a: d[2], vx: d[3], vy: d[4] };
 }
 
+const dz = (v, d = 0.12) => Math.abs(v) < d ? 0 : Math.sign(v) * (Math.abs(v) - d) / (1 - d);
 function readInput() {
-  return { up: keys.up, down: keys.down, steer: (keys.right ? 1 : 0) - (keys.left ? 1 : 0) };
+  let steer = (keys.right ? 1 : 0) - (keys.left ? 1 : 0), thr = keys.up ? 1 : 0, brk = keys.down ? 1 : 0;
+  if (joy.id !== null) steer = joy.v;
+  const gp = pollPad();
+  if (gp) {
+    if (!steer) steer = gp.steer;
+    thr = Math.max(thr, gp.thr); brk = Math.max(brk, gp.brk);
+  }
+  return { up: thr > 0.05, down: brk > 0.05, thr, brk, steer: Math.max(-1, Math.min(1, steer)) };
 }
+// joystick físico (Gamepad API): stick izq dobla, RT/A acelera, LT/B/X frena, Y vuelve a pista
+let padPrevY = false;
+function pollPad() {
+  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  for (const g of pads) {
+    if (!g || !g.connected) continue;
+    const b = i => g.buttons[i] ? g.buttons[i].value || (g.buttons[i].pressed ? 1 : 0) : 0;
+    const dpad = (b(15) ? 1 : 0) - (b(14) ? 1 : 0);
+    const y = !!b(3);
+    if (y && !padPrevY) resetCar();
+    padPrevY = y;
+    return { steer: dpad || dz(g.axes[0] || 0), thr: Math.max(b(7), b(0), b(12)), brk: Math.max(b(6), b(1), b(2), b(13)) };
+  }
+  return null;
+}
+addEventListener('gamepadconnected', e => toast('🎮 Joystick conectado: ' + (e.gamepad.id || '').slice(0, 30)));
 
 function setMsg(text, dur = 2, color = '#fff') { if (race) race.msg = { text, until: nowS() + dur, color }; }
 function spark(x, y, power) {
@@ -741,6 +765,17 @@ function drawHUD(R, ord, poses, now) {
     box(W / 2 - w / 2, H * 0.24, w, 46);
     ctx.fillStyle = R.msg.color; ctx.fillText(R.msg.text, W / 2, H * 0.24 + 32);
   }
+  if (mine && touchMode === 'joystick' && isTouch()) {
+    const bx = joy.id !== null ? joy.ox : W * 0.16, by = joy.id !== null ? joy.oy : H - 100;
+    ctx.globalAlpha = joy.id !== null ? 0.9 : 0.45;
+    ctx.strokeStyle = '#ffffff99'; ctx.lineWidth = 3; ctx.fillStyle = '#ffffff1a';
+    ctx.beginPath(); ctx.arc(bx, by, JOY_R, 0, 7); ctx.fill(); ctx.stroke();
+    const kx = bx + (joy.id !== null ? Math.max(-JOY_R, Math.min(JOY_R, joy.x - joy.ox)) : 0);
+    const ky = by + (joy.id !== null ? Math.max(-JOY_R, Math.min(JOY_R, joy.y - joy.oy)) * 0.3 : 0);
+    ctx.fillStyle = joy.v ? '#e10600cc' : '#ffffff88'; ctx.beginPath(); ctx.arc(kx, ky, 26, 0, 7); ctx.fill();
+    if (joy.id === null) { ctx.fillStyle = '#fff'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'center'; ctx.fillText('◀ apoyá el dedo ▶', bx, by + JOY_R + 18); }
+    ctx.globalAlpha = 1;
+  }
   if (!mine) {
     ctx.textAlign = 'center'; ctx.font = '700 16px system-ui'; ctx.fillStyle = '#fff';
     ctx.fillText('Mirando la carrera · entrás en la próxima', W / 2, H - 30);
@@ -748,12 +783,15 @@ function drawHUD(R, ord, poses, now) {
 }
 
 // ---------- input ----------
+function resetCar() {
+  if (race?.mine && !race.demo && nowS() > race.lightsOut && !race.mine.car.service) { respawn(race.mine.car, race.tr); race.mine.freeze = 1; setMsg('De vuelta a pista', 1.2); }
+}
 const KEYMAP = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
   const k = KEYMAP[e.code];
   if (k) { keys[k] = true; e.preventDefault(); }
-  if (e.code === 'KeyR' && race?.mine && nowS() > race.lightsOut) { respawn(race.mine.car, race.tr); race.mine.freeze = 1; setMsg('De vuelta a pista', 1.2); }
+  if (e.code === 'KeyR') resetCar();
   if (e.code === 'KeyM') { muted = !muted; toast(muted ? 'Sonido apagado' : 'Sonido prendido'); }
 });
 addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
@@ -761,13 +799,42 @@ addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 // táctil multitoque: en cada evento se miran TODOS los dedos apoyados y qué botón tiene cada uno abajo
 // (así se puede acelerar y doblar a la vez, y deslizar el dedo de un botón a otro)
 const tBtns = [...document.querySelectorAll('#touch button')];
+const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0, v: 0 }, JOY_R = 60;
+let touchMode = 'botones';
+try { touchMode = localStorage.getItem('f1mini-touch') || 'botones'; } catch (e) {}
+function applyTouchMode() {
+  $('touch').classList.toggle('joymode', touchMode === 'joystick');
+  for (const b of document.querySelectorAll('#touchMode button')) b.classList.toggle('sel', b.dataset.m === touchMode);
+}
+for (const b of document.querySelectorAll('#touchMode button')) b.onclick = () => { touchMode = b.dataset.m; try { localStorage.setItem('f1mini-touch', touchMode); } catch (e) {} applyTouchMode(); };
+applyTouchMode();
 function updateTouches(e) {
   if (screen !== 'race') return;
   e.preventDefault();
-  const on = new Set();
-  for (const t of e.touches) for (const b of tBtns) {
-    const r = b.getBoundingClientRect(), pad = 18;
-    if (t.clientX >= r.left - pad && t.clientX <= r.right + pad && t.clientY >= r.top - pad && t.clientY <= r.bottom + pad) on.add(b.dataset.k);
+  const on = new Set(), list = [...e.touches];
+  if (touchMode === 'joystick') {
+    // el primer dedo que toca la mitad izquierda es el stick (aparece donde apoyás)
+    if (joy.id !== null && !list.some(t => t.identifier === joy.id)) { joy.id = null; joy.v = 0; }
+    if (joy.id === null && e.type === 'touchstart') {
+      const t = [...e.changedTouches].find(t => t.clientX < innerWidth * 0.5);
+      if (t) { joy.id = t.identifier; joy.ox = joy.x = t.clientX; joy.oy = joy.y = t.clientY; }
+    }
+    const jt = list.find(t => t.identifier === joy.id);
+    if (jt) {
+      let dx = jt.clientX - joy.ox, dy = jt.clientY - joy.oy;
+      const d = Math.hypot(dx, dy);
+      if (d > JOY_R) { joy.ox += dx * (1 - JOY_R / d); joy.oy += dy * (1 - JOY_R / d); dx = jt.clientX - joy.ox; dy = jt.clientY - joy.oy; } // la base sigue al dedo
+      joy.x = jt.clientX; joy.y = jt.clientY;
+      joy.v = dz(dx / JOY_R, 0.08);
+    }
+  }
+  for (const t of list) {
+    if (t.identifier === joy.id) continue;
+    for (const b of tBtns) {
+      if (touchMode === 'joystick' && (b.dataset.k === 'left' || b.dataset.k === 'right')) continue;
+      const r = b.getBoundingClientRect(), pad = 18;
+      if (t.clientX >= r.left - pad && t.clientX <= r.right + pad && t.clientY >= r.top - pad && t.clientY <= r.bottom + pad) on.add(b.dataset.k);
+    }
   }
   for (const b of tBtns) { const k = b.dataset.k, v = on.has(k); keys[k] = v; b.classList.toggle('on', v); }
 }

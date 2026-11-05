@@ -187,10 +187,11 @@ export function stepCar(c, inp, tr, dt, t, opt = {}) {
   const health = (1 - 0.07 * c.wear) * (1 - 0.13 * c.dmg);
   const maxS = PHYS.maxSpeed * c.maxMul * health * (gravel ? PHYS.gravelMax : off ? PHYS.grassMax : 1)
     * (1 + c.draft * 0.07) * (c.drsOn ? 1.09 : 1);
-  if (c.drsOn && inp.down) c.drsOn = false;
-  if (inp.up) vf += PHYS.acc * dt * Math.max(0, 1 - vf / maxS);
-  if (inp.down) { if (vf > 5) vf -= PHYS.brake * dt * (1 - 0.15 * c.wear); else vf = Math.max(-150, vf - PHYS.rev * dt); }
-  if (!inp.up && !inp.down) vf -= Math.sign(vf) * Math.min(Math.abs(vf), 70 * dt);
+  const thr = inp.thr ?? (inp.up ? 1 : 0), brk = inp.brk ?? (inp.down ? 1 : 0);
+  if (c.drsOn && brk > 0.1) c.drsOn = false;
+  if (thr > 0) vf += PHYS.acc * thr * dt * Math.max(0, 1 - vf / maxS);
+  if (brk > 0) { if (vf > 5) vf -= PHYS.brake * brk * dt * (1 - 0.15 * c.wear); else vf = Math.max(-150, vf - PHYS.rev * brk * dt); }
+  if (thr <= 0 && brk <= 0) vf -= Math.sign(vf) * Math.min(Math.abs(vf), 70 * dt);
   vf -= vf * (gravel ? PHYS.gravelDrag : off ? PHYS.grassDrag : PHYS.drag * (c.drsOn ? 0.5 : 1)) * dt;
   if (vf > maxS) vf -= (vf - maxS) * 2.5 * dt;
   if (c.inPit && vf > PIT_LIMIT) vf = Math.max(PIT_LIMIT, vf - 1500 * dt);

@@ -66,3 +66,8 @@ td.pos { font-weight: 800; width: 28px; } td.r { text-align: right; } tr.me td {
 canvas, #touch, #touch * { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 #touch button { width: 84px; height: 84px; border-radius: 50%; background: #ffffff26; border: 2px solid #ffffff55; font-size: 18px; }
 #touch button.on { background: #e10600aa; }
+
+.seg { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { flex: 1; background: transparent; border-radius: 0; color: var(--mut); padding: 8px; }
+.seg button.sel { background: var(--red); color: #fff; }
+#touch.joymode .tl { visibility: hidden; }
