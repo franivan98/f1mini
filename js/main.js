@@ -758,12 +758,21 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-for (const b of document.querySelectorAll('#touch button')) {
-  const k = b.dataset.k;
-  const on = e => { e.preventDefault(); keys[k] = true; b.classList.add('on'); };
-  const off = e => { e.preventDefault(); keys[k] = false; b.classList.remove('on'); };
-  b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('pointerleave', off);
+// táctil multitoque: en cada evento se miran TODOS los dedos apoyados y qué botón tiene cada uno abajo
+// (así se puede acelerar y doblar a la vez, y deslizar el dedo de un botón a otro)
+const tBtns = [...document.querySelectorAll('#touch button')];
+function updateTouches(e) {
+  if (screen !== 'race') return;
+  e.preventDefault();
+  const on = new Set();
+  for (const t of e.touches) for (const b of tBtns) {
+    const r = b.getBoundingClientRect(), pad = 18;
+    if (t.clientX >= r.left - pad && t.clientX <= r.right + pad && t.clientY >= r.top - pad && t.clientY <= r.bottom + pad) on.add(b.dataset.k);
+  }
+  for (const b of tBtns) { const k = b.dataset.k, v = on.has(k); keys[k] = v; b.classList.toggle('on', v); }
 }
+for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) addEventListener(ev, updateTouches, { passive: false });
+addEventListener('gesturestart', e => { if (screen === 'race') e.preventDefault(); }, { passive: false }); // iOS: evita zoom con 2 dedos
 
 // ---------- sonido ----------
 let audio = null;
