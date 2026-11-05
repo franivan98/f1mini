@@ -1,5 +1,5 @@
 // ===== Escenografía de las pistas: pianos, grava, boxes, tribunas, árboles, edificios =====
-import { TRACK_W, KERB, relIdx } from './core.js';
+import { TRACK_W, KERB, relIdx } from './core.js?v=7';
 
 const HALF = TRACK_W / 2;
 export const THEMES = {

@@ -71,3 +71,4 @@ canvas, #touch, #touch * { touch-action: none; -webkit-user-select: none; user-s
 .seg button { flex: 1; background: transparent; border-radius: 0; color: var(--mut); padding: 8px; }
 .seg button.sel { background: var(--red); color: #fff; }
 #touch.joymode .tl { visibility: hidden; }
+.ver { text-align: right; font-size: 11px; color: #666; margin-top: 6px; }

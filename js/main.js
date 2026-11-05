@@ -1,7 +1,7 @@
 import { TRACKS, buildTrack, createCar, stepCar, interact, botInput, respawn, currentLap, drsCheck, relIdx,
-  TRACK_W, KERB, PHYS, POINTS, BOT_LEVELS, WEAR, PIT_LIMIT, gridSlot } from './core.js';
-import { decorate, drawTrack } from './scenery.js';
-import { HostNet, ClientNet } from './net.js';
+  TRACK_W, KERB, PHYS, POINTS, BOT_LEVELS, WEAR, PIT_LIMIT, gridSlot } from './core.js?v=7';
+import { decorate, drawTrack } from './scenery.js?v=7';
+import { HostNet, ClientNet } from './net.js?v=7';
 
 // ---------- constantes ----------
 const COLORS = ['#e10600', '#ff8700', '#f5d000', '#7cfc00', '#00d2be', '#1e90ff', '#3a2bd8', '#9b59b6', '#ff66c4', '#ffffff', '#8b8b99', '#1b1b1b'];
@@ -414,29 +414,8 @@ const dz = (v, d = 0.12) => Math.abs(v) < d ? 0 : Math.sign(v) * (Math.abs(v) - 
 function readInput() {
   let steer = (keys.right ? 1 : 0) - (keys.left ? 1 : 0), thr = keys.up ? 1 : 0, brk = keys.down ? 1 : 0;
   if (joy.id !== null) steer = joy.v;
-  const gp = pollPad();
-  if (gp) {
-    if (!steer) steer = gp.steer;
-    thr = Math.max(thr, gp.thr); brk = Math.max(brk, gp.brk);
-  }
   return { up: thr > 0.05, down: brk > 0.05, thr, brk, steer: Math.max(-1, Math.min(1, steer)) };
 }
-// joystick físico (Gamepad API): stick izq dobla, RT/A acelera, LT/B/X frena, Y vuelve a pista
-let padPrevY = false;
-function pollPad() {
-  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-  for (const g of pads) {
-    if (!g || !g.connected) continue;
-    const b = i => g.buttons[i] ? g.buttons[i].value || (g.buttons[i].pressed ? 1 : 0) : 0;
-    const dpad = (b(15) ? 1 : 0) - (b(14) ? 1 : 0);
-    const y = !!b(3);
-    if (y && !padPrevY) resetCar();
-    padPrevY = y;
-    return { steer: dpad || dz(g.axes[0] || 0), thr: Math.max(b(7), b(0), b(12)), brk: Math.max(b(6), b(1), b(2), b(13)) };
-  }
-  return null;
-}
-addEventListener('gamepadconnected', e => toast('🎮 Joystick conectado: ' + (e.gamepad.id || '').slice(0, 30)));
 
 function setMsg(text, dur = 2, color = '#fff') { if (race) race.msg = { text, until: nowS() + dur, color }; }
 function spark(x, y, power) {
@@ -806,7 +785,10 @@ function applyTouchMode() {
   $('touch').classList.toggle('joymode', touchMode === 'joystick');
   for (const b of document.querySelectorAll('#touchMode button')) b.classList.toggle('sel', b.dataset.m === touchMode);
 }
-for (const b of document.querySelectorAll('#touchMode button')) b.onclick = () => { touchMode = b.dataset.m; try { localStorage.setItem('f1mini-touch', touchMode); } catch (e) {} applyTouchMode(); };
+for (const b of document.querySelectorAll('#touchMode button')) {
+  const pick = e => { e.preventDefault(); touchMode = b.dataset.m; try { localStorage.setItem('f1mini-touch', touchMode); } catch (err) {} applyTouchMode(); toast(touchMode === 'joystick' ? 'Controles: joystick' : 'Controles: botones'); };
+  b.addEventListener('click', pick);
+}
 applyTouchMode();
 function updateTouches(e) {
   if (screen !== 'race') return;
